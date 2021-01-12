@@ -1,0 +1,14 @@
+type: code
+files:
+- name: main.py
+  visible: true
+  learner_created: false
+- name: hyperskill-8921-test-03.txt
+  visible: true
+  learner_created: true
+feedback_link: https://hyperskill.org/learn/step/8921#comment
+status: Solved
+feedback:
+  message: <html>Correct solution</html>
+  time: Tue, 12 Jan 2021 20:21:51 UTC
+record: -1

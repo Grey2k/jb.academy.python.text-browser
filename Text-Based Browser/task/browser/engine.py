@@ -1,15 +1,19 @@
 import os
+from collections import deque
 
 from pages import pages
 
 
 class Browser:
     COMMAND_EXIT = 'exit'
+    COMMAND_BACK = 'back'
 
     pages = pages
 
     def __init__(self, cache_dir: str):
         self.cache_dir = cache_dir
+        self.history = deque()
+        self.current_page = None
 
     def run(self):
         if not os.path.exists(self.cache_dir):
@@ -21,24 +25,13 @@ class Browser:
             if url == Browser.COMMAND_EXIT:
                 break
 
-            if self.has_cache(url):
-                page = self.get_from_cache(url)
-                print(page)
-                continue
+            if url == Browser.COMMAND_BACK:
+                if len(self.history) == 0:
+                    continue
+                else:
+                    url = self.history.pop()
 
-            if not self.valid(url):
-                print('Error: Incorrect URL')
-                continue
-
-            if pages.get(url, None) is not None:
-                page = pages.get(url)
-
-                print(page)
-                self.update_cache(url, page)
-                continue
-
-            print('Error: Page not Found')
-            continue
+            self.browse_page(url)
 
     @staticmethod
     def valid(url: str) -> bool:
@@ -65,3 +58,31 @@ class Browser:
 
         with open(f"{filename}", 'w') as file:
             file.write(page)
+
+    def browse_page(self, url: str) -> None:
+        if self.has_cache(url):
+            page = self.get_from_cache(url)
+            print(page)
+
+            if self.current_page is not None:
+                self.history.append(self.current_page)
+
+            self.current_page = url
+            return
+
+        if not self.valid(url):
+            print('Error: Incorrect URL')
+            return
+
+        if pages.get(url, None) is not None:
+            page = pages.get(url)
+
+            print(page)
+            self.update_cache(url, page)
+            if self.current_page is not None:
+                self.history.append(self.current_page)
+
+            self.current_page = url
+            return
+
+        print('Error: Page not Found')
