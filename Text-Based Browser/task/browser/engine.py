@@ -1,8 +1,11 @@
 import os
 import requests
 from collections import deque
+from bs4 import BeautifulSoup
+from colorama import init
+from termcolor import colored
 
-from pages import pages
+init()
 
 
 class Browser:
@@ -37,13 +40,16 @@ class Browser:
         if url.find('.') == -1:
             return False
 
+        try:
+            if len(url.split('.')[-1]) not in [2, 3]:
+                return False
+        except IndexError:
+            return False
+
         return True
 
     def get_filename(self, url: str) -> str:
-        if os.path.isfile(os.path.join(self.cache_dir, url)):
-            return os.path.join(self.cache_dir, url)
-
-        return os.path.join(self.cache_dir, ".".join(url.split('.')[:-1:]))
+        return os.path.join(self.cache_dir, url)
 
     def has_cache(self, url: str) -> bool:
         return os.path.isfile(self.get_filename(url))
@@ -72,21 +78,39 @@ class Browser:
             return
 
         if not self.valid(url):
-            print('Error: Incorrect URL')
+            print('Incorrect URL')
             return
 
-        response = requests.get(real_url)
+        try:
+            response = requests.get(real_url)
+        except requests.exceptions.ConnectionError:
+            print('Incorrect URL')
+            return
 
         if not response:
             print('Error: There is an Error {}'.format(response.status_code))
             return
 
-        page = response.text
-
+        page = self.parse_response(url, response.content)
         print(page)
-        self.update_cache(url, page)
         if self.current_page is not None:
             self.history.append(self.current_page)
 
         self.current_page = url
         return
+
+    def parse_response(self, url: str, content: bytes) -> str:
+        parse_only = ('p', 'a', 'ul', 'ol', 'li')
+
+        tree = BeautifulSoup(content, 'html.parser')
+
+        filename = self.get_filename(url)
+
+        with open(f"{filename}", 'w') as file:
+            for tag in tree.find_all(list(parse_only)):
+                if tag.name == 'a':
+                    print(colored(tag.text, 'blue'), file=file)
+                else:
+                    print(tag.text, file=file)
+
+        return self.get_from_cache(url)
