@@ -1,4 +1,5 @@
 import os
+import requests
 from collections import deque
 
 from pages import pages
@@ -7,8 +8,6 @@ from pages import pages
 class Browser:
     COMMAND_EXIT = 'exit'
     COMMAND_BACK = 'back'
-
-    pages = pages
 
     def __init__(self, cache_dir: str):
         self.cache_dir = cache_dir
@@ -56,10 +55,12 @@ class Browser:
     def update_cache(self, url: str, page: str) -> None:
         filename = self.get_filename(url)
 
-        with open(f"{filename}", 'w') as file:
+        with open(f"{filename}", 'w', encoding='UTF-8') as file:
             file.write(page)
 
     def browse_page(self, url: str) -> None:
+        real_url = url if url.startswith('https://') else 'https://' + url
+
         if self.has_cache(url):
             page = self.get_from_cache(url)
             print(page)
@@ -74,15 +75,18 @@ class Browser:
             print('Error: Incorrect URL')
             return
 
-        if pages.get(url, None) is not None:
-            page = pages.get(url)
+        response = requests.get(real_url)
 
-            print(page)
-            self.update_cache(url, page)
-            if self.current_page is not None:
-                self.history.append(self.current_page)
-
-            self.current_page = url
+        if not response:
+            print('Error: There is an Error {}'.format(response.status_code))
             return
 
-        print('Error: Page not Found')
+        page = response.text
+
+        print(page)
+        self.update_cache(url, page)
+        if self.current_page is not None:
+            self.history.append(self.current_page)
+
+        self.current_page = url
+        return
